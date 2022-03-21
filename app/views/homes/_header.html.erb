@@ -22,6 +22,9 @@
         <%= link_to create_nft_path do %>
           <div class="text-white px-4 font-bold text-[#c8cacd] hover:text-white cursor-pointer"> Create </div>
         <% end %>
+        <%= link_to profile_path,id: "profile" do %>
+          <div class="text-white px-4 font-bold text-[#c8cacd] hover:text-white cursor-pointer"> Profile </div>
+        <% end %>
         <button type="button" id="btnConnect" class="text-white px-4 font-bold text-[#c8cacd] hover:text-white cursor-pointer text-[30px]">
             <%= fa_icon('wallet',type: :solid, class: "fd") %>
         </button>

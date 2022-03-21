@@ -5,10 +5,22 @@ var serverUrl = "https://a6mx0qzskcmf.usemoralis.com:2053/server";
 var appId = "fWZxyfpcs9HSh7tQQQ6RPbQ5g0sKjXm3gwkUW4L6";
 Moralis.start({ serverUrl, appId});
 
+var user = Moralis.User.current();
+
+if(user){
+    $("#btnLogout").show();
+    $("#btnConnect").hide();
+    $("#profile").show();
+    var currentUserAddress = user.attributes.accounts[0];
+}
+else{
+    $("#btnConnect").show(); 
+    $("#btnLogout").hide(); 
+    $("#profile").hide();   
+}
 
 //Login with MetaMask
-const login = async function() {
-    let user = Moralis.User.current();
+$("#btnConnect").on("click",async function () {
     if (!user) {
       user = await Moralis.authenticate({ signingMessage: "Log in using Moralis" })
         .then(function (user) {
@@ -19,23 +31,23 @@ const login = async function() {
           alert(error.message);
         });
     }
-    else
-    {
-        $("#btnConnect").hide();
-    }
+    window.location.reload();
   }
+)
 
-var currentUserAddress = Moralis.User.current().attributes.accounts[0];
 
 //LogOut From Metamask  
-const logOut = async function() {
+$("#btnLogout").on("click",async function () {
     await Moralis.User.logOut();
     alert("logged out");
-  }
+    window.location.reload();
+})
+
   $("#content").html("");
 //Get All NFTs of a specific user
 window.nftCollection = async function() {
     const userEthNFTs = await Moralis.Web3.getNFTs({ chain: "rinkeby", accounts: currentUserAddress});
+    console.log(userEthNFTs);
     userEthNFTs.forEach(function (nft) {
         let url = fixURL(nft.token_uri);
         fetch(url)
@@ -101,7 +113,7 @@ function fixURL(url) {
         else
         {
             return url;
-        }
+        }   
     }
     else{
         return "../assets/images/noimage.png";
@@ -115,484 +127,93 @@ function upload_data_to_ipfs()
 
 }
 
+//Save File To IPFS and upload metadata in json format in ipfs
+$("#create-nft").on("click",async function(){
+    $("#create-nft").prop('disabled', true);
+    const data = $("input[type=file][name=upload_file]").prop('files')[0];
+        const file = new Moralis.File(data.name, data)
+        await file.saveIPFS();
+        const imageURI = file.ipfs();
+        //console.log(imageURI);
+        const metadata = {
+            "name":$("#name").val(),
+            "description":$("#description").val(),
+            "image":imageURI
+        }
+        const metadataFile = new Moralis.File("metadata.json", {base64 : btoa(JSON.stringify(metadata))});
+        await metadataFile.saveIPFS();
+        const metadataURI = metadataFile.ipfs();
+        console.log(metadataURI);
+        mint_nft(metadataURI);
+})
+
 //Mint_nft
-window.mint_nft = async function() {
+window.mint_nft = async function(metadataURI) { 
+    const metadata = metadataURI;
     web3 = await Moralis.enableWeb3();
-    const ABI = [
-        {
-            "inputs": [],
-            "stateMutability": "nonpayable",
-            "type": "constructor"
-        },
-        {
-            "anonymous": false,
-            "inputs": [
-                {
-                    "indexed": true,
-                    "internalType": "address",
-                    "name": "account",
-                    "type": "address"
-                },
-                {
-                    "indexed": true,
-                    "internalType": "address",
-                    "name": "operator",
-                    "type": "address"
-                },
-                {
-                    "indexed": false,
-                    "internalType": "bool",
-                    "name": "approved",
-                    "type": "bool"
-                }
-            ],
-            "name": "ApprovalForAll",
-            "type": "event"
-        },
-        {
-            "anonymous": false,
-            "inputs": [
-                {
-                    "indexed": true,
-                    "internalType": "address",
-                    "name": "previousOwner",
-                    "type": "address"
-                },
-                {
-                    "indexed": true,
-                    "internalType": "address",
-                    "name": "newOwner",
-                    "type": "address"
-                }
-            ],
-            "name": "OwnershipTransferred",
-            "type": "event"
-        },
-        {
-            "anonymous": false,
-            "inputs": [
-                {
-                    "indexed": true,
-                    "internalType": "address",
-                    "name": "operator",
-                    "type": "address"
-                },
-                {
-                    "indexed": true,
-                    "internalType": "address",
-                    "name": "from",
-                    "type": "address"
-                },
-                {
-                    "indexed": true,
-                    "internalType": "address",
-                    "name": "to",
-                    "type": "address"
-                },
-                {
-                    "indexed": false,
-                    "internalType": "uint256[]",
-                    "name": "ids",
-                    "type": "uint256[]"
-                },
-                {
-                    "indexed": false,
-                    "internalType": "uint256[]",
-                    "name": "values",
-                    "type": "uint256[]"
-                }
-            ],
-            "name": "TransferBatch",
-            "type": "event"
-        },
-        {
-            "anonymous": false,
-            "inputs": [
-                {
-                    "indexed": true,
-                    "internalType": "address",
-                    "name": "operator",
-                    "type": "address"
-                },
-                {
-                    "indexed": true,
-                    "internalType": "address",
-                    "name": "from",
-                    "type": "address"
-                },
-                {
-                    "indexed": true,
-                    "internalType": "address",
-                    "name": "to",
-                    "type": "address"
-                },
-                {
-                    "indexed": false,
-                    "internalType": "uint256",
-                    "name": "id",
-                    "type": "uint256"
-                },
-                {
-                    "indexed": false,
-                    "internalType": "uint256",
-                    "name": "value",
-                    "type": "uint256"
-                }
-            ],
-            "name": "TransferSingle",
-            "type": "event"
-        },
-        {
-            "anonymous": false,
-            "inputs": [
-                {
-                    "indexed": false,
-                    "internalType": "string",
-                    "name": "value",
-                    "type": "string"
-                },
-                {
-                    "indexed": true,
-                    "internalType": "uint256",
-                    "name": "id",
-                    "type": "uint256"
-                }
-            ],
-            "name": "URI",
-            "type": "event"
-        },
-        {
-            "inputs": [],
-            "name": "ART",
-            "outputs": [
-                {
-                    "internalType": "uint256",
-                    "name": "",
-                    "type": "uint256"
-                }
-            ],
-            "stateMutability": "view",
-            "type": "function"
-        },
-        {
-            "inputs": [
-                {
-                    "internalType": "address",
-                    "name": "account",
-                    "type": "address"
-                },
-                {
-                    "internalType": "uint256",
-                    "name": "id",
-                    "type": "uint256"
-                }
-            ],
-            "name": "balanceOf",
-            "outputs": [
-                {
-                    "internalType": "uint256",
-                    "name": "",
-                    "type": "uint256"
-                }
-            ],
-            "stateMutability": "view",
-            "type": "function"
-        },
-        {
-            "inputs": [
-                {
-                    "internalType": "address[]",
-                    "name": "accounts",
-                    "type": "address[]"
-                },
-                {
-                    "internalType": "uint256[]",
-                    "name": "ids",
-                    "type": "uint256[]"
-                }
-            ],
-            "name": "balanceOfBatch",
-            "outputs": [
-                {
-                    "internalType": "uint256[]",
-                    "name": "",
-                    "type": "uint256[]"
-                }
-            ],
-            "stateMutability": "view",
-            "type": "function"
-        },
-        {
-            "inputs": [
-                {
-                    "internalType": "address",
-                    "name": "account",
-                    "type": "address"
-                },
-                {
-                    "internalType": "uint256",
-                    "name": "id",
-                    "type": "uint256"
-                },
-                {
-                    "internalType": "uint256",
-                    "name": "amount",
-                    "type": "uint256"
-                }
-            ],
-            "name": "burn",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
-        },
-        {
-            "inputs": [
-                {
-                    "internalType": "address",
-                    "name": "account",
-                    "type": "address"
-                },
-                {
-                    "internalType": "address",
-                    "name": "operator",
-                    "type": "address"
-                }
-            ],
-            "name": "isApprovedForAll",
-            "outputs": [
-                {
-                    "internalType": "bool",
-                    "name": "",
-                    "type": "bool"
-                }
-            ],
-            "stateMutability": "view",
-            "type": "function"
-        },
-        {
-            "inputs": [],
-            "name": "metadata_uri",
-            "outputs": [
-                {
-                    "internalType": "string",
-                    "name": "",
-                    "type": "string"
-                }
-            ],
-            "stateMutability": "view",
-            "type": "function"
-        },
-        {
-            "inputs": [
-                {
-                    "internalType": "address",
-                    "name": "account",
-                    "type": "address"
-                },
-                {
-                    "internalType": "uint256",
-                    "name": "id",
-                    "type": "uint256"
-                },
-                {
-                    "internalType": "uint256",
-                    "name": "amount",
-                    "type": "uint256"
-                }
-            ],
-            "name": "mint",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
-        },
-        {
-            "inputs": [],
-            "name": "owner",
-            "outputs": [
-                {
-                    "internalType": "address",
-                    "name": "",
-                    "type": "address"
-                }
-            ],
-            "stateMutability": "view",
-            "type": "function"
-        },
-        {
-            "inputs": [],
-            "name": "renounceOwnership",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
-        },
-        {
-            "inputs": [
-                {
-                    "internalType": "address",
-                    "name": "from",
-                    "type": "address"
-                },
-                {
-                    "internalType": "address",
-                    "name": "to",
-                    "type": "address"
-                },
-                {
-                    "internalType": "uint256[]",
-                    "name": "ids",
-                    "type": "uint256[]"
-                },
-                {
-                    "internalType": "uint256[]",
-                    "name": "amounts",
-                    "type": "uint256[]"
-                },
-                {
-                    "internalType": "bytes",
-                    "name": "data",
-                    "type": "bytes"
-                }
-            ],
-            "name": "safeBatchTransferFrom",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
-        },
-        {
-            "inputs": [
-                {
-                    "internalType": "address",
-                    "name": "from",
-                    "type": "address"
-                },
-                {
-                    "internalType": "address",
-                    "name": "to",
-                    "type": "address"
-                },
-                {
-                    "internalType": "uint256",
-                    "name": "id",
-                    "type": "uint256"
-                },
-                {
-                    "internalType": "uint256",
-                    "name": "amount",
-                    "type": "uint256"
-                },
-                {
-                    "internalType": "bytes",
-                    "name": "data",
-                    "type": "bytes"
-                }
-            ],
-            "name": "safeTransferFrom",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
-        },
-        {
-            "inputs": [
-                {
-                    "internalType": "address",
-                    "name": "operator",
-                    "type": "address"
-                },
-                {
-                    "internalType": "bool",
-                    "name": "approved",
-                    "type": "bool"
-                }
-            ],
-            "name": "setApprovalForAll",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
-        },
-        {
-            "inputs": [
-                {
-                    "internalType": "string",
-                    "name": "_metadata_uri",
-                    "type": "string"
-                }
-            ],
-            "name": "set_meta_data",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
-        },
-        {
-            "inputs": [
-                {
-                    "internalType": "bytes4",
-                    "name": "interfaceId",
-                    "type": "bytes4"
-                }
-            ],
-            "name": "supportsInterface",
-            "outputs": [
-                {
-                    "internalType": "bool",
-                    "name": "",
-                    "type": "bool"
-                }
-            ],
-            "stateMutability": "view",
-            "type": "function"
-        },
-        {
-            "inputs": [
-                {
-                    "internalType": "address",
-                    "name": "newOwner",
-                    "type": "address"
-                }
-            ],
-            "name": "transferOwnership",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
-        },
-        {
-            "inputs": [
-                {
-                    "internalType": "uint256",
-                    "name": "",
-                    "type": "uint256"
-                }
-            ],
-            "name": "uri",
-            "outputs": [
-                {
-                    "internalType": "string",
-                    "name": "",
-                    "type": "string"
-                }
-            ],
-            "stateMutability": "view",
-            "type": "function"
-        }];
+    const ABI = [{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "_metadata",
+				"type": "string"
+			}
+		],
+		"name": "mint",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},];
     const options = {
-    contractAddress: "0x88af08386A4915DAb009f1F17551170013d9a53d",
+    contractAddress: "0xE1dD9A07A9BC7Ab61f486602dd029A73A543735D",
     functionName: "mint",
     abi: ABI,
-    params: { account: currentUserAddress,id: 1, amount: 1  },
+    params: { account: currentUserAddress, amount: 1, _metadata: metadata},
     msgValue: 0
     };
     const allowance = await Moralis.executeFunction(options);
     console.log(allowance);
 }
 
-const userConnectButton = document.getElementById("btnConnect");
-userConnectButton.onclick = login;
-const LogoutButton = document.getElementById("btnLogout");
-LogoutButton.onclick = logOut;
-const userProfileButton = document.getElementById("btnProfile");
+window.openUserInfo = async () => {
+    if(user)
+    {
+        $("#username").val(user.get("username"));
+        if(user.get("email")){
+            $("#email").val(user.get("email"));
+        }
+        if(user.get("avatar"))
+        {
+            $("#user-avatar").attr("src", user.get("avatar").url());
+        }
+    }
+    else{
+        $("#btnConnect").click();
+    }
+}
 
-const createNftButton = document.getElementById("create-nft");
-createNftButton.onclick = upload_data_to_ipfs();
-
-
-
-
+//Update Profile
+window.updateProfile = async () => {
+    if(user)
+    {
+        user.set("username",$("#username").val());
+        user.set("email",$("#email").val());
+        if($("#avatar").prop("files").length > 0 ){
+        var avatar = new Moralis.File("avatar.jpg", $("#avatar").prop("files")[0]);
+            user.set("avatar", avatar);
+        }
+    }
+    await user.save();
+    alert("Profile Updated successfully");
+    window.location.reload();
+}

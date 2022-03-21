@@ -7,4 +7,7 @@ class HomesController < ApplicationController
 
     def create_nft
     end
+
+    def profile
+    end
 end
