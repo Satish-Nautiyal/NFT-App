@@ -5488,10 +5488,10 @@
   "resolved" "https://registry.npmjs.org/mock-fs/-/mock-fs-4.14.0.tgz"
   "version" "4.14.0"
 
-"moralis@^1.5.3":
-  "integrity" "sha512-r+A32vtp6Pkz7xRHJfF18q5Mvpbgf/YSd+DiThIo9Mkp8XXLSMRHZaqG+57qD/HWXYu4gQfAebZwu113HiTiMw=="
-  "resolved" "https://registry.npmjs.org/moralis/-/moralis-1.5.3.tgz"
-  "version" "1.5.3"
+"moralis@^1.5.5":
+  "integrity" "sha512-eNQ96hMVxq24virjI+QbjeSqVOWbLE7dBsc4w426/GeExKz7jnrwSbkaYYP2w6ozOa7dzfEyFKK7g5S7Or3V+Q=="
+  "resolved" "https://registry.npmjs.org/moralis/-/moralis-1.5.5.tgz"
+  "version" "1.5.5"
   dependencies:
     "@babel/runtime" "7.16.7"
     "@babel/runtime-corejs3" "7.16.8"
@@ -8119,6 +8119,11 @@
     "extend-shallow" "^3.0.2"
     "regex-not" "^1.0.2"
     "safe-regex" "^1.1.0"
+
+"toastify-js@^1.11.2":
+  "integrity" "sha512-bMBNKhZLPX/sDhpwM7KHIRUTtqCylQeoZDiEWy5zE7iDUJ92XmP8AKgDAp9rXx6pR5GXGFtQHHoH62toahbHgQ=="
+  "resolved" "https://registry.npmjs.org/toastify-js/-/toastify-js-1.11.2.tgz"
+  "version" "1.11.2"
 
 "toidentifier@1.0.1":
   "integrity" "sha512-o5sSPKEkg/DIQNmH43V0/uerLrpzVedkUh8tGNvaeXpfpuwjKenlSox/2O/BTlZUtEe+JG7s5YhEz608PlAHRA=="

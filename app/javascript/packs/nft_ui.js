@@ -1,16 +1,15 @@
 export const Moralis = require('moralis');
-import noimage from "../../assets/images/noimage"
+import noimage from "../../assets/images/noimage";
 require("jquery")
 var serverUrl = "https://a6mx0qzskcmf.usemoralis.com:2053/server";
 var appId = "fWZxyfpcs9HSh7tQQQ6RPbQ5g0sKjXm3gwkUW4L6";
 Moralis.start({ serverUrl, appId});
-
-var user = Moralis.User.current();
-
-if(user){
+console.log(Moralis.User.current())
+if(Moralis.User.current()){
+    var user = Moralis.User.current();
     $("#btnLogout").show();
     $("#btnConnect").hide();
-    $("#profile").show();
+    $("#profile").show();       
     var currentUserAddress = user.attributes.accounts[0];
 }
 else{
@@ -45,10 +44,10 @@ $("#btnLogout").on("click",async function () {
 
   $("#content").html("");
 //Get All NFTs of a specific user
-window.nftCollection = async function() {
-    const userEthNFTs = await Moralis.Web3.getNFTs({ chain: "rinkeby", accounts: currentUserAddress});
-    console.log(userEthNFTs);
-    userEthNFTs.forEach(function (nft) {
+window.getOwnedItems = async function() {
+    const ownedItems = await Moralis.Cloud.run("getUserItems");
+    console.log(ownedItems);
+    ownedItems.forEach(function (nft) {
         let url = fixURL(nft.token_uri);
         fetch(url)
         .then(response => response.json())
@@ -104,6 +103,32 @@ window.nftCollection = async function() {
     });
 }
 
+//Save NFTs into DataBase
+window.saveNftsToDb = async function () {
+    const EthTokenBlance = Moralis.Object.extend("EthTokenBalance");
+    const userEthNFTs = await Moralis.Web3.getNFTs({ chain: "rinkeby", address: currentUserAddress});
+    console.log(userEthNFTs);
+    userEthNFTs.forEach(async function (nft) {
+        const query = new Moralis.Query("EthTokenBalance");
+        query.equalTo("token_id", parseInt(nft.token_id));
+        query.equalTo("token_address", nft.token_address);
+        const result = await query.find();
+        console.log(result)
+        if(result.length == 0) 
+        {
+            const nftBlance = new EthTokenBlance ();
+            nftBlance.set("token_address", nft.token_address);
+            nftBlance.set("token_uri", nft.token_uri);
+            nftBlance.set("token_id", parseInt(nft.token_id));
+            nftBlance.set("owner_of", currentUserAddress);
+            nftBlance.set("contract_type", nft.contract_type);
+            nftBlance.set("amount", nft.amount);
+            nftBlance.save();
+        }
+    });
+    getOwnedItems();
+}
+
 // Fix Urls which don't start with https://
 function fixURL(url) {
     if(url != null){
@@ -116,15 +141,9 @@ function fixURL(url) {
         }   
     }
     else{
-        return "../assets/images/noimage.png";
+        return noimage;
     }
     
-}
-
-//Upload metadata of NFT
-function upload_data_to_ipfs()
-{
-
 }
 
 //Save File To IPFS and upload metadata in json format in ipfs
@@ -196,6 +215,10 @@ window.openUserInfo = async () => {
         {
             $("#user-avatar").attr("src", user.get("avatar").url());
         }
+        else if(!user.get("avatar"))
+        {
+            $("#user-avatar").attr("src", noimage);
+        }
     }
     else{
         $("#btnConnect").click();
@@ -205,15 +228,33 @@ window.openUserInfo = async () => {
 //Update Profile
 window.updateProfile = async () => {
     if(user)
-    {
+    {   
         user.set("username",$("#username").val());
         user.set("email",$("#email").val());
         if($("#avatar").prop("files").length > 0 ){
-        var avatar = new Moralis.File("avatar.jpg", $("#avatar").prop("files")[0]);
+            let tempPath = URL.createObjectURL($("#avatar").prop("files")[0]);
+            $("#user-avatar").attr("src",tempPath);
+            var avatar = new Moralis.File("avatar.jpg", $("#avatar").prop("files")[0]);
             user.set("avatar", avatar);
         }
     }
-    await user.save();
-    alert("Profile Updated successfully");
-    window.location.reload();
+    try{
+        await user.save();
+        Toastify({
+            text: "Profile Updated Successfully",    
+            duration: 2000 ,
+            style: {
+                background: "green", margin: "auto"
+            }  
+        }).showToast();
+    }
+    catch(error){
+        Toastify({
+            text: error,    
+            duration: 4000 ,
+            style: {
+                background: "red", margin: "auto"
+            }  
+        }).showToast();
+    };
 }
