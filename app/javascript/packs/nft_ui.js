@@ -4,7 +4,6 @@ require("jquery")
 var serverUrl = "https://a6mx0qzskcmf.usemoralis.com:2053/server";
 var appId = "fWZxyfpcs9HSh7tQQQ6RPbQ5g0sKjXm3gwkUW4L6";
 Moralis.start({ serverUrl, appId});
-console.log(Moralis.User.current())
 if(Moralis.User.current()){
     var user = Moralis.User.current();
     $("#btnLogout").show();
@@ -46,14 +45,13 @@ $("#btnLogout").on("click",async function () {
 //Get All NFTs of a specific user
 window.getOwnedItems = async function() {
     const ownedItems = await Moralis.Cloud.run("getUserItems");
-    console.log(ownedItems);
     ownedItems.forEach(function (nft) {
         let url = fixURL(nft.token_uri);
         fetch(url)
         .then(response => response.json())
         .then(data =>{
             $("#content").append(" \
-                <div class='bg-gray-600 hover:scale-110 w-[14rem] h-[22rem] my-10 mx-5 rounded-2xl overflow-hidden cursor-pointer'> \
+                <div class='bg-gray-600 shadow-2xl hover:scale-110 w-[14rem] h-[22rem] my-10 mx-5 rounded-2xl overflow-hidden cursor-pointer'> \
                     <div class=' bg-white h-2/3 w-full overflow-hidden flex justify-center items-center'> \
                         <img src='"+fixURL(data.image)+"' alt='"+data.name+"' class='w-full object-cover' /> \
                     </div> \
@@ -62,6 +60,7 @@ window.getOwnedItems = async function() {
                             <div class='flex-0.6 flex-wrap'> \
                                 <div class='font-semibold text-sm text-[#8a939b]'>title</div> \
                                 <div id='nft-name' class='font-bold text-lg mt-2 overflow-hidden w-[150px]'>"+data.name+"</div> \
+                                <button type='button' onclick=listItemForSale("+nft.token_id+",'"+nft.token_address+"',99999999999)>Sell</button> \
                             </div> \
                             <div class='flex-0.4 text-right'></div>\
                             <div class='font-semibold text-sm text-[#8a939b]'>Price</div> \
@@ -77,7 +76,7 @@ window.getOwnedItems = async function() {
                 </div>    ");
         }).catch((error)=>{
             $("#content").append(" \
-                <div class='bg-gray-600 hover:scale-110 w-[14rem] h-[22rem] my-10 mx-5 rounded-2xl overflow-hidden cursor-pointer'> \
+                <div class='bg-gray-600 shadow-2xl hover:scale-110 w-[14rem] h-[22rem] my-10 mx-5 rounded-2xl overflow-hidden cursor-pointer'> \
                     <div class='bg-white h-2/3 w-full overflow-hidden flex justify-center items-center'> \
                         <img src='"+noimage+"' alt='noimage' class='h-auto w-full object-cover' /> \
                     </div> \
@@ -107,13 +106,11 @@ window.getOwnedItems = async function() {
 window.saveNftsToDb = async function () {
     const EthTokenBlance = Moralis.Object.extend("EthTokenBalance");
     const userEthNFTs = await Moralis.Web3.getNFTs({ chain: "rinkeby", address: currentUserAddress});
-    console.log(userEthNFTs);
     userEthNFTs.forEach(async function (nft) {
         const query = new Moralis.Query("EthTokenBalance");
         query.equalTo("token_id", parseInt(nft.token_id));
         query.equalTo("token_address", nft.token_address);
         const result = await query.find();
-        console.log(result)
         if(result.length == 0) 
         {
             const nftBlance = new EthTokenBlance ();
@@ -153,7 +150,6 @@ $("#create-nft").on("click",async function(){
         const file = new Moralis.File(data.name, data)
         await file.saveIPFS();
         const imageURI = file.ipfs();
-        //console.log(imageURI);
         const metadata = {
             "name":$("#name").val(),
             "description":$("#description").val(),
@@ -162,7 +158,6 @@ $("#create-nft").on("click",async function(){
         const metadataFile = new Moralis.File("metadata.json", {base64 : btoa(JSON.stringify(metadata))});
         await metadataFile.saveIPFS();
         const metadataURI = metadataFile.ipfs();
-        console.log(metadataURI);
         mint_nft(metadataURI);
 })
 
@@ -201,7 +196,233 @@ window.mint_nft = async function(metadataURI) {
     msgValue: 0
     };
     const allowance = await Moralis.executeFunction(options);
-    console.log(allowance);
+}
+
+const marketPlaceAbi = [
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "tokenAddress",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "askingPrice",
+				"type": "uint256"
+			}
+		],
+		"name": "addItemToMarket",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			}
+		],
+		"name": "buyItem",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "tokenAddress",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "askingPrice",
+				"type": "uint256"
+			}
+		],
+		"name": "itemAdded",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "buyer",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "askingPrice",
+				"type": "uint256"
+			}
+		],
+		"name": "itemSold",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "itemsForSale",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "tokenAddress",
+				"type": "address"
+			},
+			{
+				"internalType": "address payable",
+				"name": "seller",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "askingPrice",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bool",
+				"name": "isSold",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+];
+// Approve MarketPlace
+window.approveMarketPlace = async (web3) => {
+    const options = {
+        contractAddress: "0x46342Ea637d11b02E0C8268c9070dD973a916c63",
+        functionName: "setApprovalForAll",
+        abi: [{
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "operator",
+                    "type": "address"
+                },
+                {
+                    "internalType": "bool",
+                    "name": "approved",
+                    "type": "bool"
+                }
+            ],
+            "name": "setApprovalForAll",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        }],
+        params: { operator: "0x46342Ea637d11b02E0C8268c9070dD973a916c63", approved: true, from: user.get('ethAddress')},
+    };
+    await Moralis.executeFunction(options);
+    listItemForSale();
+}
+
+//check if market place is approved
+window.ensureMarketPlaceIsApproved = async () => {
+    web3 = await Moralis.enableWeb3();
+    const options = {
+        contractAddress: "0x46342Ea637d11b02E0C8268c9070dD973a916c63",
+        functionName: "isApprovedForAll",
+        abi: [{
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "account",
+                    "type": "address"
+                },
+                {
+                    "internalType": "address",
+                    "name": "operator",
+                    "type": "address"
+                }
+            ],
+            "name": "isApprovedForAll",
+            "outputs": [
+                {
+                    "internalType": "bool",
+                    "name": "",
+                    "type": "bool"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        }],
+        params: { operator: "0x46342Ea637d11b02E0C8268c9070dD973a916c63", account: user.get('ethAddress')},
+    };
+    if(!await Moralis.executeFunction(options))
+    {
+        await approveMarketPlace(web3);
+    }
+}
+
+//List Item For Sale
+window.listItemForSale = async (tokenId, tokenAddress, askingPrice) => {
+    await ensureMarketPlaceIsApproved().then(async function(){
+    web3 = await Moralis.enableWeb3();
+    const options = {
+        contractAddress: "0x46342Ea637d11b02E0C8268c9070dD973a916c63",
+        functionName: "addItemToMarket",
+        abi: marketPlaceAbi,
+        params: { tokenId: tokenId, tokenAddress: tokenAddress, askingPrice: askingPrice, from: user.get('ethAddress')},
+        msgValue: 0
+    };
+    const allowance = await Moralis.executeFunction(options);
+    }
+    );
 }
 
 window.openUserInfo = async () => {
