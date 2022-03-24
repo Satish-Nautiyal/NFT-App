@@ -52,13 +52,14 @@ contract CsMarketPlace is ERC1155 {
         return newItemId;
     }
 
-    function buyItem(uint256 id) external payable ItemExists(id) IsSold(id){
+    function buyItem(uint256 id) payable external ItemExists(id) IsSold(id) HasTransferApproval(itemsForSale[id].seller){
         require(msg.value >= itemsForSale[id].askingPrice,"Not enough funds sent!");
-        require(msg.sender != itemsForSale[id].seller);
-
+        // require(msg.sender != itemsForSale[id].seller);
         itemsForSale[id].isSold =true;
         activeItems[itemsForSale[id].tokenAddress][itemsForSale[id].tokenId] = true;
-        IERC1155(itemsForSale[id].tokenAddress).safeTransferFrom(itemsForSale[id].seller, msg.sender, itemsForSale[id].tokenId, 1, "");
+
+        ERC1155(itemsForSale[id].tokenAddress).safeTransferFrom(itemsForSale[id].seller, msg.sender, itemsForSale[id].tokenId, 1, "0x0");
+
         itemsForSale[id].seller.transfer(msg.value);
 
         emit itemSold(id, msg.sender, itemsForSale[id].askingPrice);

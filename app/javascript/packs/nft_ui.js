@@ -116,7 +116,7 @@ window.saveNftsToDb = async function () {
             const nftBlance = new EthTokenBlance ();
             nftBlance.set("token_address", nft.token_address);
             nftBlance.set("token_uri", nft.token_uri);
-            nftBlance.set("token_id", parseInt(nft.token_id));
+            nftBlance.set("token_id", nft.token_id);
             nftBlance.set("owner_of", currentUserAddress);
             nftBlance.set("contract_type", nft.contract_type);
             nftBlance.set("amount", nft.amount);
@@ -141,6 +141,72 @@ function fixURL(url) {
         return noimage;
     }
     
+}
+
+//Get Items for sale
+window.getItemsForSale = async () => {
+    $("#item-for-sale").html("");
+    const Items = await Moralis.Cloud.run("getItemsForSale");
+    Items.forEach(function (item){
+        // if(user){
+        //     if(user.attributes.accounts.includes(item.ownerOf)) return;
+        // }
+        console.log(item);
+        let url = fixURL(item.tokenUri);
+        fetch(url)
+        .then(response => response.json())
+        .then(data =>{
+            $("#item-for-sale").append(" \
+                <div class='bg-gray-600 shadow-2xl hover:scale-110 w-[14rem] h-[22rem] my-10 mx-5 rounded-2xl overflow-hidden cursor-pointer'> \
+                    <div class=' bg-white h-2/3 w-full overflow-hidden flex justify-center items-center'> \
+                        <img src='"+fixURL(data.image)+"' alt='"+data.name+"' class='w-full object-cover' /> \
+                    </div> \
+                    <div class='p-3'> \
+                        <div class='justify-between text-[#e4e8eb] drop-shadow-xl'> \
+                            <div class='flex-wrap'> \
+                                <div id='nft-name' class='font-bold text-lg mt-2 overflow-hidden w-[150px]'>"+data.name+"</div> \
+                            </div> \
+                            <div class='font-semibold text-sm text-[#8a939b]'>Price</div> \
+                            <div id='nft-price' class='flex items-center text-xl font-bold mt-2'> \
+                                <img src='https://storage.opensea.io/files/6f8e2979d428180222796ff4a33ab929.svg' alt='eth' class='h-5 mr-2' id='nft-image'/> \
+                                <div class='text-[16px]'>"+item.askingPrice+"</div> \
+                            </div> \
+                            <div class='w-full'> \
+                                <button type='button' class='w-full bg-sky-600 text-white' onclick='buyItem("+item.uid+")'>Buy Now</button> \
+                            </div> \
+                        </div> \
+                    </div> \
+                    <div class='text-[#8a939b] font-bold flex items-center w-full justify-end mt-3'> \
+                        <span id='nft-like' class='text-xl mr-2'> \
+                        </span> \
+                    </div> \
+                </div>    ");
+        }).catch((error)=>{
+            $("#item-for-sale").append(" \
+                <div class='bg-gray-600 shadow-2xl hover:scale-110 w-[14rem] h-[22rem] my-10 mx-5 rounded-2xl overflow-hidden cursor-pointer'> \
+                    <div class='bg-white h-2/3 w-full overflow-hidden flex justify-center items-center'> \
+                        <img src='"+noimage+"' alt='noimage' class='h-auto w-full object-cover' /> \
+                    </div> \
+                    <div class='p-3'> \
+                        <div class='flex justify-between text-[#e4e8eb] drop-shadow-xl'> \
+                            <div class='flex-0.6 flex-wrap'> \
+                                <div class='font-semibold text-sm text-[#8a939b]'>title</div> \
+                                <div id='nft-name' class='font-bold text-lg mt-2 overflow-hidden w-[150px]'>Unnamed</div> \
+                            </div> \
+                            <div class='flex-0.4 text-right'></div>\
+                            <div class='font-semibold text-sm text-[#8a939b]'>Price</div> \
+                            <div id='nft-price' class='flex items-center text-xl font-bold mt-2'> \
+                                <img src='https://storage.opensea.io/files/6f8e2979d428180222796ff4a33ab929.svg' alt='eth' class='h-5 mr-2' id='nft-image'/> \
+                            </div> \
+                        </div> \
+                    </div> \
+                    <div class='text-[#8a939b] font-bold flex items-center w-full justify-end mt-3'> \
+                        <span id='nft-like' class='text-xl mr-2'> \
+                        </span> \
+                    </div> \
+                </div>");
+        })
+    });
 }
 
 //Save File To IPFS and upload metadata in json format in ipfs
@@ -197,7 +263,6 @@ window.mint_nft = async function(metadataURI) {
     };
     const allowance = await Moralis.executeFunction(options);
 }
-
 const marketPlaceAbi = [
 	{
 		"inputs": [
@@ -345,7 +410,7 @@ const marketPlaceAbi = [
 // Approve MarketPlace
 window.approveMarketPlace = async (web3) => {
     const options = {
-        contractAddress: "0x46342Ea637d11b02E0C8268c9070dD973a916c63",
+        contractAddress: "0xCbd9C08462f1863943943EB2cDD2b4a2a3AC791D",
         functionName: "setApprovalForAll",
         abi: [{
             "inputs": [
@@ -365,17 +430,16 @@ window.approveMarketPlace = async (web3) => {
             "stateMutability": "nonpayable",
             "type": "function"
         }],
-        params: { operator: "0x46342Ea637d11b02E0C8268c9070dD973a916c63", approved: true, from: user.get('ethAddress')},
+        params: { operator: "0xCbd9C08462f1863943943EB2cDD2b4a2a3AC791D", approved: true, from: user.get('ethAddress')},
     };
     await Moralis.executeFunction(options);
-    listItemForSale();
 }
 
 //check if market place is approved
 window.ensureMarketPlaceIsApproved = async () => {
     web3 = await Moralis.enableWeb3();
     const options = {
-        contractAddress: "0x46342Ea637d11b02E0C8268c9070dD973a916c63",
+        contractAddress: "0xCbd9C08462f1863943943EB2cDD2b4a2a3AC791D",
         functionName: "isApprovedForAll",
         abi: [{
             "inputs": [
@@ -401,7 +465,7 @@ window.ensureMarketPlaceIsApproved = async () => {
             "stateMutability": "view",
             "type": "function"
         }],
-        params: { operator: "0x46342Ea637d11b02E0C8268c9070dD973a916c63", account: user.get('ethAddress')},
+        params: { operator: "0xCbd9C08462f1863943943EB2cDD2b4a2a3AC791D", account: user.get('ethAddress')},
     };
     if(!await Moralis.executeFunction(options))
     {
@@ -414,7 +478,7 @@ window.listItemForSale = async (tokenId, tokenAddress, askingPrice) => {
     await ensureMarketPlaceIsApproved().then(async function(){
     web3 = await Moralis.enableWeb3();
     const options = {
-        contractAddress: "0x46342Ea637d11b02E0C8268c9070dD973a916c63",
+        contractAddress: "0xCbd9C08462f1863943943EB2cDD2b4a2a3AC791D",
         functionName: "addItemToMarket",
         abi: marketPlaceAbi,
         params: { tokenId: tokenId, tokenAddress: tokenAddress, askingPrice: askingPrice, from: user.get('ethAddress')},
@@ -424,6 +488,24 @@ window.listItemForSale = async (tokenId, tokenAddress, askingPrice) => {
     }
     );
 }
+
+//Buy Item
+window.buyItem = async (itemId) => {
+    console.log(itemId);
+    await ensureMarketPlaceIsApproved().then(async function(){
+        web3 = await Moralis.enableWeb3();
+        const options = {
+            contractAddress: "0xCbd9C08462f1863943943EB2cDD2b4a2a3AC791D",
+            functionName: "buyItem",
+            abi: marketPlaceAbi,
+            params: { id: itemId, from: "0xCbd9C08462f1863943943EB2cDD2b4a2a3AC791D"},
+            msgValue: 9999999999999
+        };
+        const buyed = await Moralis.executeFunction(options);
+    });
+}
+
+buyItem(0);
 
 window.openUserInfo = async () => {
     if(user)
