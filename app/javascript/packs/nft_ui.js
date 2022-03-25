@@ -160,21 +160,21 @@ window.getItemsForSale = async () => {
         .then(data =>{
             $("#item-for-sale").append(" \
                 <div class='bg-gray-600 shadow-2xl hover:scale-110 w-[14rem] h-[22rem] my-10 mx-5 rounded-2xl overflow-hidden cursor-pointer'> \
-                    <div class=' bg-white h-2/3 w-full overflow-hidden flex justify-center items-center'> \
+                    <div class=' bg-white h-[222px] w-full overflow-hidden flex justify-center items-center'> \
                         <img src='"+fixURL(data.image)+"' alt='"+data.name+"' class='w-full object-cover' /> \
                     </div> \
                     <div class='p-3'> \
-                        <div class='justify-between text-[#e4e8eb] drop-shadow-xl'> \
+                        <div class='mt-[-10px] justify-between text-[#e4e8eb] drop-shadow-xl'> \
                             <div class='flex-wrap'> \
                                 <div id='nft-name' class='font-bold text-lg mt-2 overflow-hidden w-[150px]'>"+data.name+"</div> \
                             </div> \
                             <div class='font-semibold text-sm text-[#8a939b]'>Price</div> \
-                            <div id='nft-price' class='flex items-center text-xl font-bold mt-2'> \
+                            <div id='nft-price' class='mt-[-2px] flex items-center text-xl font-bold mt-2'> \
                                 <img src='https://storage.opensea.io/files/6f8e2979d428180222796ff4a33ab929.svg' alt='eth' class='h-5 mr-2' id='nft-image'/> \
                                 <div class='text-[16px]'>"+item.askingPrice+"</div> \
                             </div> \
                             <div class='w-full'> \
-                                <button type='button' class='w-full bg-sky-600 text-white' onclick=buyItem('"+item.tokenAddress+"',"+item.uid+")>Buy Now</button> \
+                                <button type='button' class='mt-[9px] rounded w-full bg-sky-600 text-white' onclick=buyItem('"+item.tokenAddress+"',"+item.uid+")>Buy Now</button> \
                             </div> \
                         </div> \
                     </div> \
