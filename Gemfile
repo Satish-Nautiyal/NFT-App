@@ -44,6 +44,13 @@ group :development do
   gem 'spring'
 end
 
+group :production do
+  # Access an interactive console on exception pages or by calling 'console' anywhere in the code.
+  # Display performance information such as SQL time and flame graphs for each request in your browser.
+  # Can be configured to work on production as well see: https://github.com/MiniProfiler/rack-mini-profiler/blob/master/README.md
+  gem 'rack-mini-profiler', '~> 2.0'
+end
+
 group :test do
   # Adds support for Capybara system testing and selenium driver
   gem 'capybara', '>= 3.26'
