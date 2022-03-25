@@ -63,3 +63,4 @@ end
 gem 'tzinfo-data', platforms: [:mingw, :mswin, :x64_mingw, :jruby]
 gem 'font_awesome5_rails'
 gem "tailwindcss-rails", "~> 2.0"
+gem "pg"
