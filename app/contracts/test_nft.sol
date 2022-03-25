@@ -2,9 +2,8 @@
 pragma solidity ^0.8.4;
 
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC1155/ERC1155.sol";
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol";
 
-contract TestNft is ERC1155,Ownable {
+contract TestNft is ERC1155 {
     uint256 public constant ART = 0;
     uint256 id;
     constructor() ERC1155("https://opensea.mypinata.cloud/ipfs/bafkreieanvzxrauqrtttup2essgaxji5ozpbor5g4o64gxcln3nlzhrrye") {
@@ -29,7 +28,7 @@ contract TestNft is ERC1155,Ownable {
         return(_uris[tokenId]);
     }
     
-    function setTokenUri(uint256 tokenId, string memory _uri) public onlyOwner {
+    function setTokenUri(uint256 tokenId, string memory _uri) public {
         require(bytes(_uris[tokenId]).length == 0, "Cannot set MetaData twice"); 
         _uris[tokenId] = _uri; 
     }   

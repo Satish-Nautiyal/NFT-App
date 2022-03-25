@@ -26,8 +26,9 @@ contract CsMarketPlace is ERC1155 {
         _;
     }
 
-    modifier HasTransferApproval(address sellerAddress){
-        require(isApprovedForAll(sellerAddress, address(this)) == true , "This Market Place is not Approved");
+    modifier HasTransferApproval(address tokenAddress, address sellerAddress){
+        ERC1155 token = ERC1155(tokenAddress);
+        require(token.isApprovedForAll(sellerAddress, address(this)), "This Market Place is not Approved");
         _;
     }
 
@@ -41,7 +42,7 @@ contract CsMarketPlace is ERC1155 {
         _;
     }
 
-    function addItemToMarket(address tokenAddress, uint256 tokenId, uint256 askingPrice) OnlyItemOwner(tokenAddress, tokenId) HasTransferApproval(msg.sender) external returns(uint256){
+    function addItemToMarket(address tokenAddress, uint256 tokenId, uint256 askingPrice) OnlyItemOwner(tokenAddress, tokenId) HasTransferApproval(tokenAddress, msg.sender) external returns(uint256){
         require(activeItems[tokenAddress][tokenId] == false, "Item is already up for sale!");
         uint256 newItemId = itemsForSale.length;
         itemsForSale.push(AuctionItem(newItemId, tokenId, tokenAddress, payable(msg.sender), askingPrice, false));
@@ -52,13 +53,13 @@ contract CsMarketPlace is ERC1155 {
         return newItemId;
     }
 
-    function buyItem(uint256 id) payable external ItemExists(id) IsSold(id) HasTransferApproval(itemsForSale[id].seller){
+    function buyItem(uint256 id) payable external ItemExists(id) IsSold(id) HasTransferApproval(itemsForSale[id].tokenAddress, itemsForSale[id].seller){
         require(msg.value >= itemsForSale[id].askingPrice,"Not enough funds sent!");
-        // require(msg.sender != itemsForSale[id].seller);
+        require(msg.sender != itemsForSale[id].seller);
         itemsForSale[id].isSold =true;
-        activeItems[itemsForSale[id].tokenAddress][itemsForSale[id].tokenId] = true;
-
-        ERC1155(itemsForSale[id].tokenAddress).safeTransferFrom(itemsForSale[id].seller, msg.sender, itemsForSale[id].tokenId, 1, "0x0");
+        activeItems[itemsForSale[id].tokenAddress][itemsForSale[id].tokenId] = false;
+        ERC1155 token = ERC1155(itemsForSale[id].tokenAddress);
+        token.safeTransferFrom(itemsForSale[id].seller, msg.sender, itemsForSale[id].tokenId, 1, "");
 
         itemsForSale[id].seller.transfer(msg.value);
 
