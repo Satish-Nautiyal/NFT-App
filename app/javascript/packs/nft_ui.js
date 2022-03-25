@@ -9,7 +9,7 @@ if(Moralis.User.current()){
     $("#btnLogout").show();
     $("#btnConnect").hide();
     $("#profile").show();       
-    var currentUserAddress = user.attributes.accounts[0];
+    var currentUserAddress = ""+user.get('accounts')+"";
 }
 else{
     $("#btnConnect").show(); 
@@ -60,7 +60,7 @@ window.getOwnedItems = async function() {
                             <div class='flex-0.6 flex-wrap'> \
                                 <div class='font-semibold text-sm text-[#8a939b]'>title</div> \
                                 <div id='nft-name' class='font-bold text-lg mt-2 overflow-hidden w-[150px]'>"+data.name+"</div> \
-                                <button type='button' onclick=listItemForSale("+nft.token_id+",'"+nft.token_address+"',99999999999)>Sell</button> \
+                                <button type='button' onclick=listItemForSale("+nft.token_id+",'"+nft.token_address+"','10000')>Sell</button> \
                             </div> \
                             <div class='flex-0.4 text-right'></div>\
                             <div class='font-semibold text-sm text-[#8a939b]'>Price</div> \
@@ -108,9 +108,11 @@ window.saveNftsToDb = async function () {
     const userEthNFTs = await Moralis.Web3.getNFTs({ chain: "rinkeby", address: currentUserAddress});
     userEthNFTs.forEach(async function (nft) {
         const query = new Moralis.Query("EthTokenBalance");
-        query.equalTo("token_id", parseInt(nft.token_id));
+        query.equalTo("token_id", nft.token_id);
         query.equalTo("token_address", nft.token_address);
+        query.equalTo("owner_of", currentUserAddress);
         const result = await query.find();
+        console.log(result);
         if(result.length == 0) 
         {
             const nftBlance = new EthTokenBlance ();
@@ -172,7 +174,7 @@ window.getItemsForSale = async () => {
                                 <div class='text-[16px]'>"+item.askingPrice+"</div> \
                             </div> \
                             <div class='w-full'> \
-                                <button type='button' class='w-full bg-sky-600 text-white' onclick='buyItem("+item.uid+")'>Buy Now</button> \
+                                <button type='button' class='w-full bg-sky-600 text-white' onclick=buyItem('"+item.tokenAddress+"',"+item.uid+")>Buy Now</button> \
                             </div> \
                         </div> \
                     </div> \
@@ -255,7 +257,7 @@ window.mint_nft = async function(metadataURI) {
 		"type": "function"
 	},];
     const options = {
-    contractAddress: "0xE1dD9A07A9BC7Ab61f486602dd029A73A543735D",
+    contractAddress: "0x418e69AC64E954DCC522D8bed375B9Cb2d87A965",
     functionName: "mint",
     abi: ABI,
     params: { account: currentUserAddress, amount: 1, _metadata: metadata},
@@ -408,9 +410,9 @@ const marketPlaceAbi = [
 	}
 ];
 // Approve MarketPlace
-window.approveMarketPlace = async (web3) => {
+window.approveMarketPlace = async (tokenAddress) => {
     const options = {
-        contractAddress: "0xCbd9C08462f1863943943EB2cDD2b4a2a3AC791D",
+        contractAddress: tokenAddress,
         functionName: "setApprovalForAll",
         abi: [{
             "inputs": [
@@ -430,16 +432,16 @@ window.approveMarketPlace = async (web3) => {
             "stateMutability": "nonpayable",
             "type": "function"
         }],
-        params: { operator: "0xCbd9C08462f1863943943EB2cDD2b4a2a3AC791D", approved: true, from: user.get('ethAddress')},
+        params: { operator: "0xdC235A75AF42304daabbF209dA0b81576Ea6a73E", approved: true, from: user.get('ethAddress')},
     };
     await Moralis.executeFunction(options);
 }
 
 //check if market place is approved
-window.ensureMarketPlaceIsApproved = async () => {
+window.ensureMarketPlaceIsApproved = async (tokenAddress) => {
     web3 = await Moralis.enableWeb3();
     const options = {
-        contractAddress: "0xCbd9C08462f1863943943EB2cDD2b4a2a3AC791D",
+        contractAddress: tokenAddress,
         functionName: "isApprovedForAll",
         abi: [{
             "inputs": [
@@ -465,20 +467,21 @@ window.ensureMarketPlaceIsApproved = async () => {
             "stateMutability": "view",
             "type": "function"
         }],
-        params: { operator: "0xCbd9C08462f1863943943EB2cDD2b4a2a3AC791D", account: user.get('ethAddress')},
+        params: { operator: "0xdC235A75AF42304daabbF209dA0b81576Ea6a73E", account: user.get('ethAddress')},
     };
     if(!await Moralis.executeFunction(options))
     {
-        await approveMarketPlace(web3);
+        await approveMarketPlace(tokenAddress);
     }
 }
 
 //List Item For Sale
 window.listItemForSale = async (tokenId, tokenAddress, askingPrice) => {
-    await ensureMarketPlaceIsApproved().then(async function(){
+    console.log(tokenAddress);
+    await ensureMarketPlaceIsApproved(tokenAddress).then(async function(){
     web3 = await Moralis.enableWeb3();
     const options = {
-        contractAddress: "0xCbd9C08462f1863943943EB2cDD2b4a2a3AC791D",
+        contractAddress: "0xdC235A75AF42304daabbF209dA0b81576Ea6a73E",
         functionName: "addItemToMarket",
         abi: marketPlaceAbi,
         params: { tokenId: tokenId, tokenAddress: tokenAddress, askingPrice: askingPrice, from: user.get('ethAddress')},
@@ -490,22 +493,20 @@ window.listItemForSale = async (tokenId, tokenAddress, askingPrice) => {
 }
 
 //Buy Item
-window.buyItem = async (itemId) => {
+window.buyItem = async (tokenAddress, itemId) => {
     console.log(itemId);
-    await ensureMarketPlaceIsApproved().then(async function(){
+    await ensureMarketPlaceIsApproved(tokenAddress).then(async function(){
         web3 = await Moralis.enableWeb3();
         const options = {
-            contractAddress: "0xCbd9C08462f1863943943EB2cDD2b4a2a3AC791D",
+            contractAddress: "0xdC235A75AF42304daabbF209dA0b81576Ea6a73E",
             functionName: "buyItem",
             abi: marketPlaceAbi,
-            params: { id: itemId, from: "0xCbd9C08462f1863943943EB2cDD2b4a2a3AC791D"},
-            msgValue: 9999999999999
+            params: { id: itemId},
+            msgValue: 10000
         };
         const buyed = await Moralis.executeFunction(options);
     });
 }
-
-buyItem(0);
 
 window.openUserInfo = async () => {
     if(user)
