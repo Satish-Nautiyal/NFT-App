@@ -1,0 +1,94 @@
+<div>
+    <Header />
+    <div class = "px-[115px] flex flex-col items-center container-lg text-[#e5e8eb]">
+    <div class = "container p-6">
+        <div class = "flex">
+        <div class = "flex-[1.2] mr-4">
+            <!-- Nft image -->
+            <div class="border border-gray-500 rounded-t-lg ">
+                <div class = "bg-[#303339] p-2 rounded-t-lg">
+                    <div class = "flex items-center">
+                    <IoMdSnow />
+                    <div class = "flex-1 flex items-center justify-end">
+                        <AiOutlineHeart />
+                        2.3K
+                    </div>
+                    </div>
+                </div>
+                <div class="bg-[#303339]">
+                    <img class="mx-auto" id="itemImage" />
+                </div>
+            </div>
+            <!-- Description -->
+            <div class="mt-8 border border-gray-500 rounded-t-lg ">
+                <div class = "bg-[#303339] p-2 rounded-t-lg border-[#151c22] border">
+                    <div class = "flex items-center">
+                    <IoMdSnow />
+                    <div class = "p-4 flex-1 flex items-center justify-end">
+                        Description
+                    </div>
+                    </div>
+                </div>
+                <div>
+                    <img class="mx-auto" id="itemImage" />
+                </div>
+            </div>
+        </div>
+        <div class = "flex-[2] ml-4">
+            <GeneralDetails selectedNft={selectedNft} />
+            <div class = "flex">
+                <div class = "h-36 flex flex-col flex-1 justify-between mb-6">
+                    <div class = "text-[#2081e2]">Bored Ape Yacht Club</div>
+                    <div id="itemName" class = "text-3xl font-extrabold"></div>
+                    <div class = "flex">
+                    <div class = "text-[#8a939b] mr-4">
+                        Owned by <span id="owner" class = "text-[#2081e2]"></span>
+                    </div>
+                    <div class = "flex items-center text-[#8a939b]">
+                        <AiFillHeart class = "mr-1" /> 2.3K favorites
+                    </div>
+                    </div>
+                </div>
+            </div>
+
+            <Purchase
+            <div class="flex h-20 w-full items-center rounded-lg border border-[#151c22] bg-[#303339] px-12">
+                <Toaster position="bottom-left" reverseOrder={false} />
+                <!-- isListed === 'true' ? (
+                    <>
+                    <div
+                        onClick={() => {
+                        enableButton ? buyItem(selectedMarketNft.id, 1) : null
+                        }}
+                        class= "mr-8 flex items-center py-2 px-12 rounded-lg cursor-pointer bg-[#2081e2] hover:bg-[#42a0ff]"
+                    >
+                        <IoMdWallet class = "text-xl" />
+                        <div class = "text-xl" >Buy Now</div>
+                    </div>
+                    <div
+                        class= "mr-8 flex items-center py-2 px-12 rounded-lg cursor-pointer bg-[#2081e2] hover:bg-[#42a0ff]"}
+                    >
+                        <HiTag class = "text-xl" />
+                        <div class = "text-xl" >Make Offer</div>
+                    </div>
+                    </>
+                ) : (
+                    <div class= "mr-8 flex items-center py-2 px-12 rounded-lg cursor-pointer bg-[#2081e2] hover:bg-[#42a0ff]">
+                    <IoMdWallet class = "text-xl" />
+                    <div class = "ml-2 text-lg font-semibold">List Item</div>
+                    </div>
+                -->
+            </div>
+        </div>
+        </div>
+        <ItemActivity />
+    </div>
+    </div>
+</div>
+<%= javascript_pack_tag "nft_ui" %>
+<script>
+    const params = new URLSearchParams(window.location.search);
+    let tokenAddress = params.get("tokenAddress");
+    let tokenId = params.get("tokenId");
+    itemDetail(tokenAddress, tokenId);
+</script>

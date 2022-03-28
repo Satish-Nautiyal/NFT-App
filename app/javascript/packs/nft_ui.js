@@ -78,6 +78,7 @@ window.createViewOfItems = async (items) => {
         .then(response => response.json())
         .then(data =>{
             $("#content").append(" \
+				<a href ='nft_detail?tokenAddress="+nft.token_address+"&tokenId="+nft.token_id+"'> \
                 <div class='bg-gray-600 shadow-2xl hover:scale-110 w-[14rem] h-[22rem] my-10 mx-5 rounded-2xl overflow-hidden cursor-pointer'> \
                     <div class=' bg-white h-2/3 w-full overflow-hidden flex justify-center items-center'> \
                         <img src='"+fixURL(data.image)+"' alt='"+data.name+"' class='w-full object-cover' /> \
@@ -100,7 +101,7 @@ window.createViewOfItems = async (items) => {
                         <span id='nft-like' class='text-xl mr-2'> \
                         </span> \
                     </div> \
-                </div>    ");
+                </div> </a>   ");
         }).catch((error)=>{
             $("#content").append(" \
                 <div class='bg-gray-600 shadow-2xl hover:scale-110 w-[14rem] h-[22rem] my-10 mx-5 rounded-2xl overflow-hidden cursor-pointer'> \
@@ -962,6 +963,27 @@ window.openUserInfo = async () => {
     else{
         $("#btnConnect").click();
     }
+}
+
+//Get detail of an item
+window.itemDetail = async (tokenAddress, tokenId) => {
+	const query = new Moralis.Query("EthTokenBalance");
+	query.equalTo("token_address", tokenAddress);
+	query.equalTo("token_id", tokenId);
+	const result = await query.first();
+	let metadataUri = fixURL(result.attributes.token_uri);
+	fetch(metadataUri)
+        .then(response => response.json())
+        .then(data =>{
+		$("#itemImage").attr("src", data.image);
+		$("#itemName").html(data.name);
+		if(result.attributes.owner_of == user.ethAddress){
+			$("#owner").html("you");	
+		}
+		else{
+			$("#itemName").html(data.owner_of);
+		}
+	})
 }
 
 //Update Profile
