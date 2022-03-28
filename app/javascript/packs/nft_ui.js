@@ -3,7 +3,30 @@ import noimage from "../../assets/images/noimage";
 require("jquery")
 var serverUrl = "https://a6mx0qzskcmf.usemoralis.com:2053/server";
 var appId = "fWZxyfpcs9HSh7tQQQ6RPbQ5g0sKjXm3gwkUW4L6";
+var currentChain;
 Moralis.start({ serverUrl, appId});
+
+window.onload=()=>{
+	getSelectedChain();
+}
+const getSelectedChain = async () => {
+	const web3 = await Moralis.enableWeb3();
+	const chainId = await Moralis.chainId;
+	console.log(chainId); // 56
+	const chain = await getNetworkName(chainId);
+	return chain;
+}
+
+function getNetworkName(chainID) {
+	var networks = {
+	  '0x1': "Ethereum Mainnet",
+	  '0x4': "Rinkeby",
+	  '0x97': "Binance Smart Chain Testnet",
+	  '0x80001': "Polygon Mumbai Testnet",
+	};
+	currentChain = networks[""+chainID+""];
+	return networks[""+chainID+""];
+}
 if(Moralis.User.current()){
     var user = Moralis.User.current();
     $("#btnLogout").show();
@@ -45,7 +68,11 @@ $("#btnLogout").on("click",async function () {
 //Get All NFTs of a specific user
 window.getOwnedItems = async function() {
     const ownedItems = await Moralis.Cloud.run("getUserItems");
-    ownedItems.forEach(function (nft) {
+    createViewOfItems(ownedItems);
+}
+
+window.createViewOfItems = async (items) => {
+    items.forEach(function (nft) {
         let url = fixURL(nft.token_uri);
         fetch(url)
         .then(response => response.json())
@@ -106,6 +133,7 @@ window.getOwnedItems = async function() {
 window.saveNftsToDb = async function () {
     const EthTokenBlance = Moralis.Object.extend("EthTokenBalance");
     const userEthNFTs = await Moralis.Web3.getNFTs({ chain: "rinkeby", address: currentUserAddress});
+	currentChain = await getSelectedChain();
     userEthNFTs.forEach(async function (nft) {
         const query = new Moralis.Query("EthTokenBalance");
         query.equalTo("token_id", nft.token_id);
@@ -122,6 +150,7 @@ window.saveNftsToDb = async function () {
             nftBlance.set("owner_of", currentUserAddress);
             nftBlance.set("contract_type", nft.contract_type);
             nftBlance.set("amount", nft.amount);
+			nftBlance.set("chain_name", currentChain);
             nftBlance.save();
         }
     });
@@ -257,7 +286,7 @@ window.mint_nft = async function(metadataURI) {
 		"type": "function"
 	},];
     const options = {
-    contractAddress: "0x418e69AC64E954DCC522D8bed375B9Cb2d87A965",
+    contractAddress: "0x882AD4Ed78436Ed1f47062c9c12DAac35F97Bd6E",
     functionName: "mint",
     abi: ABI,
     params: { account: currentUserAddress, amount: 1, _metadata: metadata},
@@ -409,6 +438,412 @@ const marketPlaceAbi = [
 		"type": "function"
 	}
 ];
+const nftAbi = [
+	{
+		"inputs": [],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "bool",
+				"name": "approved",
+				"type": "bool"
+			}
+		],
+		"name": "ApprovalForAll",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256[]",
+				"name": "ids",
+				"type": "uint256[]"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256[]",
+				"name": "values",
+				"type": "uint256[]"
+			}
+		],
+		"name": "TransferBatch",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "value",
+				"type": "uint256"
+			}
+		],
+		"name": "TransferSingle",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "value",
+				"type": "string"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			}
+		],
+		"name": "URI",
+		"type": "event"
+	},
+	{
+		"inputs": [],
+		"name": "ART",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			}
+		],
+		"name": "balanceOf",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address[]",
+				"name": "accounts",
+				"type": "address[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "ids",
+				"type": "uint256[]"
+			}
+		],
+		"name": "balanceOfBatch",
+		"outputs": [
+			{
+				"internalType": "uint256[]",
+				"name": "",
+				"type": "uint256[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			}
+		],
+		"name": "isApprovedForAll",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "_metadata",
+				"type": "string"
+			}
+		],
+		"name": "mint",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "ids",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "amounts",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "bytes",
+				"name": "data",
+				"type": "bytes"
+			}
+		],
+		"name": "safeBatchTransferFrom",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bytes",
+				"name": "data",
+				"type": "bytes"
+			}
+		],
+		"name": "safeTransferFrom",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			},
+			{
+				"internalType": "bool",
+				"name": "approved",
+				"type": "bool"
+			}
+		],
+		"name": "setApprovalForAll",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "_uri",
+				"type": "string"
+			}
+		],
+		"name": "setTokenUri",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes4",
+				"name": "interfaceId",
+				"type": "bytes4"
+			}
+		],
+		"name": "supportsInterface",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "uri",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+];
+window.editNft = async function(tokenAddress, tokenId){
+    const query = new Moralis.Query("EthTokenBalance");
+    query.equalTo("token_address", tokenAddress);
+    query.equalTo("token_id", tokenId);
+    const result = await query.first();
+    console.log(tokenAddress+","+ tokenId);
+    console.log(result);
+    let tokenURI = fixURL(result.attributes.token_uri);
+    fetch(tokenURI)
+        .then(response => response.json())
+        .then(data =>{
+            $("#item-image").attr("src", fixURL(data.image));
+            $("#item-image_field").val(fixURL(data.image));  
+        })
+
+}
+editNft("0x199b40187ce1b9960bef805a21e40d13f99deb6a","0");
+
+//update_nft
+window.updateNft = async function(tokenId, metadataURI){
+    const metadata = metadataURI;
+    web3 = await Moralis.enableWeb3();
+    const ABI = nftAbi;
+    const options = {
+    contractAddress: "0x882AD4Ed78436Ed1f47062c9c12DAac35F97Bd6E",
+    functionName: "setTokenUri",
+    abi: ABI,
+    params: { tokenID: tokenId, _uri: metadata},
+    msgValue: 0
+    };
+    const allowance = await Moralis.executeFunction(options);
+}
+
 // Approve MarketPlace
 window.approveMarketPlace = async (tokenAddress) => {
     const options = {
@@ -562,3 +997,4 @@ window.updateProfile = async () => {
         }).showToast();
     };
 }
+

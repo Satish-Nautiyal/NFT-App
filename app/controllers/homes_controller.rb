@@ -10,4 +10,7 @@ class HomesController < ApplicationController
 
     def profile
     end
+
+    def edit_nft
+    end
 end
