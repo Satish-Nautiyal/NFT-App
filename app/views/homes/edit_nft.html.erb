@@ -14,3 +14,10 @@
     </div>    
 </div>
 <%= javascript_pack_tag "nft_ui" %>
+<script>
+  const param = new URLSearchParams(window.location.search);
+  let tokenAddress = param.get("tokenAddress");
+  let tokenId = param.get("tokenId");
+  editNft(tokenAddress,tokenId);
+  itemDetail(tokenAddress, tokenId);
+</script>

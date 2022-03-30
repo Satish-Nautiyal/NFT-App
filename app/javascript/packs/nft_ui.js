@@ -1,9 +1,12 @@
 export const Moralis = require('moralis');
+import { numberToIdentifer } from "webpack/lib/Template";
 import noimage from "../../assets/images/noimage";
 require("jquery")
 var serverUrl = "https://a6mx0qzskcmf.usemoralis.com:2053/server";
 var appId = "fWZxyfpcs9HSh7tQQQ6RPbQ5g0sKjXm3gwkUW4L6";
 var currentChain;
+const nftContractAddress = "0x804Aa31B21716d59Cf9209C8256A7263096E3218";
+const marketContractAddress = "0xdC235A75AF42304daabbF209dA0b81576Ea6a73E";
 Moralis.start({ serverUrl, appId});
 
 window.onload=()=>{
@@ -241,22 +244,32 @@ window.getItemsForSale = async () => {
     });
 }
 
-//Save File To IPFS and upload metadata in json format in ipfs
-$("#create-nft").on("click",async function(){
-    $("#create-nft").prop('disabled', true);
-    const data = $("input[type=file][name=upload_file]").prop('files')[0];
+//upload metadata to ipfs
+window.uploadDataToIPFS = async () => {
+	$("#create-nft").prop('disabled', true);
+	if($("input[type=file][name=upload_file]").prop('files')[0]){
+		const data = $("input[type=file][name=upload_file]").prop('files')[0];
         const file = new Moralis.File(data.name, data)
-        await file.saveIPFS();
-        const imageURI = file.ipfs();
+		await file.saveIPFS();
+		var imageURI = file.ipfs();
+	}
+	else{
+		var imageURI = "";
+	}
         const metadata = {
             "name":$("#name").val(),
             "description":$("#description").val(),
-            "image":imageURI
+            "image": imageURI
         }
         const metadataFile = new Moralis.File("metadata.json", {base64 : btoa(JSON.stringify(metadata))});
         await metadataFile.saveIPFS();
-        const metadataURI = metadataFile.ipfs();
-        mint_nft(metadataURI);
+        return metadataFile.ipfs();
+}
+
+//Save File To IPFS and upload metadata in json format in ipfs
+$("#create-nft").on("click",async function(){
+	const metadataURI = uploadDataToIPFS();
+    mint_nft(metadataURI);
 })
 
 //Mint_nft
@@ -287,7 +300,7 @@ window.mint_nft = async function(metadataURI) {
 		"type": "function"
 	},];
     const options = {
-    contractAddress: "0x882AD4Ed78436Ed1f47062c9c12DAac35F97Bd6E",
+    contractAddress: "0x804Aa31B21716d59Cf9209C8256A7263096E3218",
     functionName: "mint",
     abi: ABI,
     params: { account: currentUserAddress, amount: 1, _metadata: metadata},
@@ -828,7 +841,6 @@ window.editNft = async function(tokenAddress, tokenId){
         })
 
 }
-editNft("0x199b40187ce1b9960bef805a21e40d13f99deb6a","0");
 
 //update_nft
 window.updateNft = async function(tokenId, metadataURI){
@@ -836,10 +848,10 @@ window.updateNft = async function(tokenId, metadataURI){
     web3 = await Moralis.enableWeb3();
     const ABI = nftAbi;
     const options = {
-    contractAddress: "0x882AD4Ed78436Ed1f47062c9c12DAac35F97Bd6E",
+    contractAddress: "0x804Aa31B21716d59Cf9209C8256A7263096E3218",
     functionName: "setTokenUri",
     abi: ABI,
-    params: { tokenID: tokenId, _uri: metadata},
+    params: { tokenId: tokenId, _uri: metadata},
     msgValue: 0
     };
     const allowance = await Moralis.executeFunction(options);
@@ -929,7 +941,7 @@ window.listItemForSale = async (tokenId, tokenAddress, askingPrice) => {
 }
 
 //Buy Item
-window.buyItem = async (tokenAddress, itemId) => {
+window.buyItem = async (tokenAddress, itemId, askingPrice) => {
     console.log(itemId);
     await ensureMarketPlaceIsApproved(tokenAddress).then(async function(){
         web3 = await Moralis.enableWeb3();
@@ -938,7 +950,7 @@ window.buyItem = async (tokenAddress, itemId) => {
             functionName: "buyItem",
             abi: marketPlaceAbi,
             params: { id: itemId},
-            msgValue: 10000
+            msgValue: askingPrice
         };
         const buyed = await Moralis.executeFunction(options);
     });
@@ -971,19 +983,40 @@ window.itemDetail = async (tokenAddress, tokenId) => {
 	query.equalTo("token_address", tokenAddress);
 	query.equalTo("token_id", tokenId);
 	const result = await query.first();
-	let metadataUri = fixURL(result.attributes.token_uri);
+	const nft = result.attributes;
+	let metadataUri = fixURL(nft.token_uri);
+	$("#token-id").val(nft.token_id);
+	$("#refresh-metadata-button").attr("onclick","refreshMetaData("+nft.token_id+",'"+nft.token_address+"')");
+	$("#item-contract").html(nft.token_address.slice(0,6)+"...."+nft.token_address.slice(-3));
+	$("#item-tokenid").html(nft.token_id);
+	$("#item-token-standard").html(nft.contract_type);
+	$("#item-chain").html(nft.chain_name);
+	$("#sell-button").attr("onclick","listItemForSale("+nft.token_id+","+nft.token_address+","+nft.asking_price+")");
+	$("#edit-button").attr("href","/edit_nft?tokenAddress="+nft.token_address+"&tokenId="+nft.token_id+"&edit=true");
+	if(nft.owner_of == currentUserAddress){
+		$("#owner").html("you");	
+	}
+	else{
+		$("#item-name").html(data.owner_of);
+	}
 	fetch(metadataUri)
         .then(response => response.json())
         .then(data =>{
-		$("#itemImage").attr("src", data.image);
-		$("#itemName").html(data.name);
-		if(result.attributes.owner_of == user.ethAddress){
-			$("#owner").html("you");	
-		}
-		else{
-			$("#itemName").html(data.owner_of);
-		}
-	})
+			$("#item-image").attr("src", data.image);
+			$("#name").html(data.name);
+			$("#description").html(data.description);
+			$("#name").val(data.name);
+			$("#description").val(data.description);
+		}).catch((error)=> {
+			$("#item-image").attr("src", noimage);
+			$("#name").html("unamed");
+			if(nft.owner_of == currentUserAddress){
+				$("#owner").html("you");	
+			}
+			else{
+				$("#name").html(data.owner_of);
+			}
+		})
 }
 
 //Update Profile
@@ -1019,4 +1052,43 @@ window.updateProfile = async () => {
         }).showToast();
     };
 }
+
+$("#update-nft").on("click",async function(){
+	const metadataURI = await uploadDataToIPFS();
+	var tokenID = $("#token-id").val();
+	await updateNft(tokenID, metadataURI);
+})
+
+window.refreshMetaData = async (tokenId,tokenAddress) => {
+	const query = new Moralis.Query("EthTokenBalance");
+	const userEthNFTs = await Moralis.Web3.getNFTs({ chain: "rinkeby", address: currentUserAddress});
+	currentChain = await getSelectedChain();
+	var metadataURI;
+    userEthNFTs.forEach(async function (nft) {
+        if(tokenId == nft.token_id && tokenAddress == nft.token_address){
+        	metadataURI = nft.token_uri;
+			return;
+		}
+    });
+	if(metadataURI){
+		console.log(tokenAddress);
+		query.equalTo("token_address", ""+tokenAddress+"");
+		query.equalTo("token_id", ""+tokenId+"");
+		const queryResults = await query.find();
+		console.log(queryResults);
+		for (let i = 0; i < queryResults.length; i++) {
+		queryResults[i].set("token_uri", metadataURI);
+		queryResults[i].save();
+		}
+	}
+	alert("updated");
+	
+}
+
+$("#item-image-field").on("change",()=>{
+	if($("#item-image-field").prop("files").length > 0 ){
+		let tempPath = URL.createObjectURL($("#item-image-field").prop("files")[0]);
+		$("#item-image").attr("src",tempPath);
+	}
+})
 
